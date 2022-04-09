@@ -1,8 +1,8 @@
-const cssImport = require("postcss-import");
+const process = require("process");
 const mix = require("laravel-mix");
-const path = require("path");
-const purgecss = require("@fullhuman/postcss-purgecss");
-const tailwindcss = require("tailwindcss");
+const cssImport = require("postcss-import");
+const cssNesting = require("postcss-nesting");
+const webpackConfig = require("./webpack.config");
 mix.disableNotifications();
 
 /*
@@ -16,49 +16,16 @@ mix.disableNotifications();
  |
  */
 
-mix.postCss("resources/css/app.css", "public/css/app.css")
-    .options({
-        postCss: [
-            cssImport(),
-            tailwindcss("tailwind.config.js"),
-            ...(mix.inProduction()
-                ? []
-                : //[
-                  //       purgecss({
-                  //           content: [
-                  //               "./resources/views/**/*.blade.php",
-                  //               "./resources/js/**/*.vue",
-                  //           ],
-                  //           defaultExtractor: (content) =>
-                  //               content.match(/[\w-/:.]+(?<!:)/g) || [],
-                  //           whitelistPatternsChildren: [/nprogress/],
-                  //       }),
-                  //   ]
-                  []),
-        ],
+mix.js("resources/js/app.js", "public/js")
+    .vue({
+        runtimeOnly: (process.env.NODE_ENV || "production") === "production",
     })
-    .js("resources/js/app.js", "public/js")
-    .vue({ version: 3 })
-    .webpackConfig({
-        module: {
-            rules: [
-                {
-                    test: /\.(postcss)$/,
-                    use: [
-                        "vue-style-loader",
-                        { loader: "css-loader", options: { importLoaders: 1 } },
-                        "postcss-loader",
-                    ],
-                },
-            ],
-        },
-        output: { chunkFilename: "js/[name].js[hash]" },
-        resolve: {
-            alias: {
-                "@": path.resolve("resources/js"),
-                vue: path.resolve("node_modules", "vue"),
-            },
-        },
-    })
+    .webpackConfig(webpackConfig)
+    .postCss("resources/css/app.css", "public/css", [
+        // prettier-ignore
+        cssImport(),
+        cssNesting(),
+        require("tailwindcss"),
+    ])
     .version()
     .sourceMaps();
